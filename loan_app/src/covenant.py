@@ -12,11 +12,17 @@ class Covenant:
                 and self.max_default_likelihood > float(max_default_likelihood):
             self.max_default_likelihood = max_default_likelihood
 
-    def is_banned_state(self, state):
-        return state in self.banned_state_set
+    def is_valid_state(self, state):
+        return state not in self.banned_state_set
 
     def is_under_max_default_likelihood(self, default_likelihood):
         if default_likelihood and default_likelihood != "":
             return float(default_likelihood) < self.max_default_likelihood
+        else:
+            return False
+
+    def covenant_requirements_met(self, loan):
+        if self.is_valid_state(loan.state) and self.is_under_max_default_likelihood(loan.default_likelihood):
+            return True
         else:
             return False

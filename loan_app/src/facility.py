@@ -16,15 +16,30 @@ class Facility:
         if isinstance(covenant, Covenant):
             self.covenant = covenant
 
+    # strategy 1
     def check_expect_yield_for_new_loan(self, loan):
         expected_yield = (1 - loan.default_likelihood) * loan.interest_rate * loan.amount \
                          - loan.default_likelihood * loan.amount \
                          - self.interest_rate * loan.amount
         return expected_yield
 
+    def strategy_2(self, loan):
+        expected_yield = (1 - loan.default_likelihood) * loan.interest_rate * loan.amount \
+                         - loan.default_likelihood * loan.amount \
+                         - self.interest_rate * loan.amount
+        return expected_yield / loan.amount
+
+    def strategy_3(self, loan, ratio=1.0):
+        expected_yield = (1 - loan.default_likelihood) * loan.interest_rate * loan.amount \
+                         - loan.default_likelihood * loan.amount \
+                         - self.interest_rate * loan.amount
+
+        amount_ratio = loan.amount / self.amount * ratio
+        return expected_yield / loan.amount + amount_ratio
+
     def check_new_loan(self, loan):
         if isinstance(loan, Loan) and loan.amount <= self.amount:
-            if loan.default_likelihood <= self.covenant.max_default_likelihood and loan.state not in self.covenant.banned_state_set:
+            if self.covenant.covenant_requirements_met(loan):
                 return True
         return False
 

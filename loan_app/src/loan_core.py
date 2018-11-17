@@ -20,22 +20,7 @@ class LoanApp:
         self.csv_covenants_list = []
         self.csv_loans_list = []
 
-    @staticmethod
-    def __load_csv_file(reader):
-        title = None
-        return_list = []
-        for row in reader:
-            if not title:
-                title = row
-                continue
-
-            current_dict = {}
-            for key, val in zip(title, row):
-                current_dict[key] = val
-            return_list.append(current_dict)
-        return return_list
-
-    def create_combine_facilities(self):
+    def create_facilities_list(self):
         for facility in self.csv_facilities_list:
             covenants_list = [covenant for covenant in self.csv_covenants_list
                               if covenant["bank_id"] == facility["bank_id"] and covenant["facility_id"] == facility["id"]]
@@ -62,29 +47,75 @@ class LoanApp:
             self.loan_list.append(combine_loan)
             self.loan_list.sort(key=lambda r: r.id)
 
-    def process(self):
-        for loan in self.loan_list:
-            for facility in self.facilities_list:
-                if facility.add_new_loan(loan):
-                    loan.set_facility_id(facility.id)
-                    break
+    def process_strategy(self, strategy=0, ratio=1.0):
+        if strategy == 0:
+            for loan in self.loan_list:
+                for facility in self.facilities_list:
+                    if facility.add_new_loan(loan):
+                        loan.set_facility_id(facility.id)
+                        break
+
+        if strategy == 1:
+            for loan in self.loan_list:
+                max_facility = None
+                max_profit = 0
+                for facility in [fc for fc in self.facilities_list if fc.check_new_loan(loan)]:
+                    profit = facility.check_expect_yield_for_new_loan(loan)
+                    if not max_facility:
+                        max_facility = facility
+                        max_profit = profit
+                    elif profit > max_profit:
+                        max_facility = facility
+                        max_profit = profit
+                if max_facility:
+                    max_facility.add_new_loan(loan)
+                    loan.set_facility_id(max_facility.id)
+
+        if strategy == 2:
+            for loan in self.loan_list:
+                max_facility = None
+                max_profit = 0
+                for facility in [fc for fc in self.facilities_list if fc.check_new_loan(loan)]:
+                    profit = facility.strategy_2(loan)
+                    if not max_facility:
+                        max_facility = facility
+                        max_profit = profit
+                    elif profit > max_profit:
+                        max_facility = facility
+                        max_profit = profit
+                if max_facility:
+                    max_facility.add_new_loan(loan)
+                    loan.set_facility_id(max_facility.id)
+
+        if strategy == 3:
+            for loan in self.loan_list:
+                max_facility = None
+                max_profit = 0
+                for facility in [fc for fc in self.facilities_list if fc.check_new_loan(loan)]:
+                    profit = facility.strategy_3(loan, ratio)
+                    if not max_facility:
+                        max_facility = facility
+                        max_profit = profit
+                    elif profit > max_profit:
+                        max_facility = facility
+                        max_profit = profit
+                if max_facility:
+                    max_facility.add_new_loan(loan)
+                    loan.set_facility_id(max_facility.id)
 
     def load_from_csv(self):
         # Read files
-        try:
-            with open(os.path.join(self.input_path, "facilities.csv"), 'rb') as fh_facilities:
-                facilities_reader = csv.reader(fh_facilities, delimiter=',', quotechar='|')
-                self.csv_facilities_list = LoanApp.__load_csv_file(facilities_reader)
+        with open(os.path.join(self.input_path, "facilities.csv"), 'rb') as fh_facilities:
+            facilities_reader = csv.reader(fh_facilities, delimiter=',', quotechar='|')
+            self.csv_facilities_list = LoanApp.__load_csv_file(facilities_reader)
 
-            with open(os.path.join(self.input_path, "covenants.csv"), 'rb') as fh_covenants:
-                covenants_reader = csv.reader(fh_covenants, delimiter=',', quotechar='|')
-                self.csv_covenants_list = LoanApp.__load_csv_file(covenants_reader)
+        with open(os.path.join(self.input_path, "covenants.csv"), 'rb') as fh_covenants:
+            covenants_reader = csv.reader(fh_covenants, delimiter=',', quotechar='|')
+            self.csv_covenants_list = LoanApp.__load_csv_file(covenants_reader)
 
-            with open(os.path.join(self.input_path, "loans.csv"), 'rb') as fh_loans:
-                loans_reader = csv.reader(fh_loans, delimiter=',', quotechar='|')
-                self.csv_loans_list = LoanApp.__load_csv_file(loans_reader)
-        except:
-            raise Exception("Input files are incorrect.")
+        with open(os.path.join(self.input_path, "loans.csv"), 'rb') as fh_loans:
+            loans_reader = csv.reader(fh_loans, delimiter=',', quotechar='|')
+            self.csv_loans_list = LoanApp.__load_csv_file(loans_reader)
 
     def output_to_csv(self):
         if not os.path.exists(self.output_path):
@@ -101,6 +132,21 @@ class LoanApp:
             yields_writer.writerow(["facility_id", "expected_yield"])
             for x in self.facilities_list:
                 yields_writer.writerow([x.id, round(x.expected_yield)])
+
+    @staticmethod
+    def __load_csv_file(reader):
+        title = None
+        return_list = []
+        for row in reader:
+            if not title:
+                title = row
+                continue
+
+            current_dict = {}
+            for key, val in zip(title, row):
+                current_dict[key] = val
+            return_list.append(current_dict)
+        return return_list
 
 
 
